@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة دفع</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            margin: 50px;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            text-align: center;
+        }
+        .success {
+            color: green;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>إتمام عملية الدفع</h2>
+        <label for="phone">رقم الهاتف</label>
+        <input type="text" id="phone" class="input-field" placeholder="أدخل رقم الهاتف" />
+
+        <label for="amount">المبلغ (دولار)</label>
+        <input type="number" id="amount" class="input-field" placeholder="أدخل المبلغ" />
+
+        <button class="button" id="payButton">دفع</button>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        document.getElementById('payButton').addEventListener('click', function() {
+            console.log('زر الدفع تم الضغط عليه');  // إضافة تسجيل دخول للتحقق
+            const phone = document.getElementById('phone').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const messageDiv = document.getElementById('message');
+
+            // التحقق من المبلغ
+            if (isNaN(amount) || amount < 10) {
+                messageDiv.innerHTML = '<p class="error">يجب أن يكون المبلغ أكبر من أو يساوي 10 دولار.</p>';
+                return;
+            }
+
+            console.log('المبلغ المدخل:', amount);  // عرض المبلغ في console
+
+            // إنشاء الفاتورة
+            createInvoice(amount);
+        });
+
+        function createInvoice(price) {
+            console.log('إنشاء الفاتورة للمبلغ:', price);  // إضافة تسجيل دخول للتحقق من عملية الإنشاء
+
+            const secretId = "je4dCacsUS1hIu28wsmr";
+            const url = "https://00acc.com/api/createInvoice";
+            const data = {
+                secretId: secretId,
+                price: price,
+                title: "testpostman",
+                description: "this is test",
+                accepts: {
+                    card: true,
+                    paypal: true,
+                    coinbase: false
+                },
+                acceptGuestPayment: true
+            };
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(responseData => {
+                console.log('استجابة إنشاء الفاتورة:', responseData);  // عرض استجابة الـ API في console
+                if (responseData.status === "done") {
+                    const invoiceId = responseData.invoiceId;
+                    getInvoiceLink(invoiceId);
+                } else {
+                    messageDiv.innerHTML = '<p class="error">حدث خطأ أثناء إنشاء الفاتورة. حاول مرة أخرى.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('حدث خطأ أثناء الاتصال بإنشاء الفاتورة:', error);
+                messageDiv.innerHTML = '<p class="error">حدث خطأ في الاتصال بالخدمة. يرجى المحاولة لاحقًا.</p>';
+            });
+        }
+
+        function getInvoiceLink(invoiceId) {
+            console.log('جلب رابط الفاتورة باستخدام invoiceId:', invoiceId);  // إضافة تسجيل دخول للتحقق من جلب الرابط
+
+            const secretId = "je4dCacsUS1hIu28wsmr";
+            const url = "https://00acc.com/api/getInvoices";
+            const data = {
+                secretId: secretId,
+                invoiceId: invoiceId
+            };
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(responseData => {
+                console.log('استجابة جلب رابط الفاتورة:', responseData);  // عرض استجابة جلب الرابط
+                if (responseData.hosted_url) {
+                    document.getElementById('message').innerHTML = `<p class="success">رابط الدفع: <a href="${responseData.hosted_url}" target="_blank">${responseData.hosted_url}</a></p>`;
+                } else {
+                    document.getElementById('message').innerHTML = '<p class="error">لم يتم العثور على رابط الدفع.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('حدث خطأ أثناء الاتصال بجلب رابط الفاتورة:', error);
+                document.getElementById('message').innerHTML = '<p class="error">حدث خطأ في الاتصال. يرجى المحاولة لاحقًا.</p>';
+            });
+        }
+    </script>
+
+</body>
+</html>
